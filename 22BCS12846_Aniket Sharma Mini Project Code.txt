@@ -1,0 +1,264 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Scanner;
+
+public class ExpenseTrackerMiniProject1 {
+    private static List<Expense> expenses = new ArrayList<>();
+    private static String currentUser;
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy");
+    private static final List<String> expenseCategories = Arrays.asList("Food", "Transportation", "Entertainment", "Utilities", "Other");
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Expense Tracker Mini Project");
+        boolean isRunning = true;
+
+        while (isRunning) {
+            System.out.println("1. Log In");
+            System.out.println("2. Sign Up");
+            System.out.println("3. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = getUserChoice(scanner);
+
+            switch (choice) {
+                case 1:
+                    logIn(scanner);
+                    break;
+                case 2:
+                    signUp(scanner);
+                    break;
+                case 3:
+                    isRunning = false;
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+
+            if (currentUser != null) {
+                while (currentUser != null) {
+                    System.out.println("Welcome, " + currentUser + "!");
+                    System.out.println("4. Add Expense");
+                    System.out.println("5. View Expenses");
+                    System.out.println("6. Log Out");
+                    System.out.print("Enter your choice: ");
+                    choice = getUserChoice(scanner);
+
+                    switch (choice) {
+                        case 4:
+                            addExpense(scanner);
+                            break;
+                        case 5:
+                            viewExpenses();
+                            break;
+                        case 6:
+                            logOut();
+                            break;
+                        default:
+                            System.out.println("Invalid choice. Please try again.");
+                    }
+                }
+            }
+        }
+
+        System.out.println("Thank you for using Expense Tracker!");
+        scanner.close();
+    }
+
+    private static void logIn(Scanner scanner) {
+        System.out.print("Enter your username: ");
+        String username = scanner.nextLine();
+
+        if (userExists(username)) {
+            currentUser = username;
+            System.out.println("Log in successful.");
+        } else {
+            System.out.println("User not found. Please sign up.");
+        }
+    }
+
+    private static void signUp(Scanner scanner) {
+        System.out.print("Enter a new username: ");
+        String username = scanner.nextLine();
+
+        if (userExists(username)) {
+            System.out.println("Username already exists. Please choose a different username.");
+        } else {
+            currentUser = username;
+            System.out.println("Sign up successful.");
+        }
+    }
+
+    private static boolean userExists(String username) {
+        for (Expense expense : expenses) {
+            if (expense.getUser().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void logOut() {
+        currentUser = null;
+        System.out.println("Log out successful.");
+    }
+
+    private static void addExpense(Scanner scanner) {
+        if (currentUser == null) {
+            System.out.println("Please log in to add an expense.");
+            return;
+        }
+
+        System.out.print("Enter expense description: ");
+        String description = scanner.nextLine();
+        double amount = 0;
+        String date = "";
+        String category = "";
+
+        while (true) {
+            try {
+                System.out.print("Enter expense amount: $");
+                amount = scanner.nextDouble();
+                scanner.nextLine(); // Consume the newline character
+                break;
+            } catch (java.util.InputMismatchException e) {
+                System.out.println("Invalid input. Please enter a valid amount.");
+                scanner.nextLine(); // Clear the invalid input
+            }
+        }
+
+        while (true) {
+            try {
+                System.out.print("Enter expense date (MM/DD/YYYY or today/yesterday): ");
+                date = scanner.nextLine();
+                if ("today".equalsIgnoreCase(date)) {
+                    date = DATE_FORMAT.format(new Date());
+                } else if ("yesterday".equalsIgnoreCase(date)) {
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.add(java.util.Calendar.DATE, -1);
+                    date = DATE_FORMAT.format(cal.getTime());
+                } else {
+                    DATE_FORMAT.setLenient(false);
+                    DATE_FORMAT.parse(date); // This line will throw ParseException if the date format is incorrect
+                }
+                break;
+            } catch (ParseException e) {
+                System.out.println("Invalid date format. Please enter date in MM/DD/YYYY format or use 'today'/'yesterday'.");
+            }
+        }
+
+        System.out.print("Enter expense category (Food/Transportation/Entertainment/Utilities/Other): ");
+        while (true) {
+            category = scanner.nextLine();
+            if (expenseCategories.contains(category)) {
+                break;
+            } else {
+                System.out.println("Invalid category. Please choose from the provided categories.");
+                System.out.print("Enter expense category: ");
+            }
+        }
+
+        Expense expense = new Expense(currentUser, description, amount, date, category);
+        expenses.add(expense);
+        System.out.println("Expense added successfully.");
+    }
+
+    private static void viewExpenses() {
+        if (currentUser == null) {
+            System.out.println("Please log in to view expenses.");
+            return;
+        }
+
+        List<Expense> userExpenses = new ArrayList<>();
+        for (Expense expense : expenses) {
+            if (expense.getUser().equals(currentUser)) {
+                userExpenses.add(expense);
+            }
+        }
+
+        if (userExpenses.isEmpty()) {
+            System.out.println("No expenses recorded yet.");
+        } else {
+            System.out.println("Expense List:");
+
+            // Sort expenses by date before displaying
+            Collections.sort(userExpenses, (e1, e2) -> {
+                try {
+                    return DATE_FORMAT.parse(e1.getDate()).compareTo(DATE_FORMAT.parse(e2.getDate()));
+                } catch (ParseException e) {
+                    return 0;
+                }
+            });
+
+            for (int i = 0; i < userExpenses.size(); i++) {
+                Expense expense = userExpenses.get(i);
+                System.out.println("Expense #" + (i + 1));
+                System.out.println("Date: " + expense.getDate());
+                System.out.println("Description: " + expense.getDescription());
+                System.out.println("Amount: $" + expense.getAmount());
+                System.out.println("Category: " + expense.getCategory());
+            }
+        }
+    }
+
+    private static int getUserChoice(Scanner scanner) {
+        while (true) {
+            try {
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // Consume the newline character
+                return choice;
+            } catch (java.util.InputMismatchException e) {
+                System.out.print("Invalid input. Please enter a number: ");
+                scanner.nextLine(); // Clear the invalid input
+            }
+        }
+    }
+
+    private static class Expense {
+        private String user;
+        private String description;
+        private double amount;
+        private String date;
+        private String category;
+
+        public Expense(String user, String description, double amount, String date, String category) {
+            this.user = user;
+            this.description = description;
+            this.amount = amount;
+            this.date = date;
+            this.category = category;
+        }
+
+        public String getUser() {
+            return user;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public String getDate() {
+            try {
+                SimpleDateFormat internalDateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                Date internalDate = internalDateFormat.parse(date);
+                return DATE_FORMAT.format(internalDate);
+            } catch (ParseException e) {
+                // Handle the exception or log an error message
+                return "Invalid Date";
+            }
+        }
+
+        public String getCategory() {
+            return category;
+        }
+    }
+}
